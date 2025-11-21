@@ -13,7 +13,7 @@ void axisChangedL() {
     double axToVolt = ax3/12.0;
 
     mgL.spin(fwd, axToVolt, voltageUnits::volt);
-    mt3.spin(vex::directionType::rev, axToVolt, voltageUnits::volt);
+    mt3.spin(fwd, axToVolt, voltageUnits::volt);
 }
 
 void axisChangedR() {
