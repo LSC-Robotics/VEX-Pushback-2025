@@ -7,12 +7,12 @@ brain br;
 // LEFT MOTORS
 motor mt1 = motor(PORT1, false);
 motor mt2 = motor(PORT2, false);
-motor mt3 = motor(PORT3, false); // Back Motors
+motor mt3 = motor(PORT3, true); // Back Motors //needs to be spinning in opposite direction...false reflects that
 
 // RIGHT MOTORS
 motor mt4 = motor(PORT11, true);
 motor mt5 = motor(PORT12, true);
-motor mt6 = motor(PORT13, true); // Back Motors
+motor mt6 = motor(PORT13, false); // Back Motors //needs to be spinning in opposite direction...false reflects that
 
 // Vision Sensor
 vision vis1 = vision(PORT19);
