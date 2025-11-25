@@ -5,14 +5,12 @@
 brain br;
 
 // LEFT MOTORS
-motor mt1 = motor(PORT1, false);
+motor mt1 = motor(PORT1, false);//small robot only needs tw motors per side
 motor mt2 = motor(PORT2, false);
-motor mt3 = motor(PORT3, true); // Back Motors //needs to be spinning in opposite direction...false reflects that
 
 // RIGHT MOTORS
 motor mt4 = motor(PORT11, true);
-motor mt5 = motor(PORT12, true);
-motor mt6 = motor(PORT13, false); // Back Motors //needs to be spinning in opposite direction...false reflects that
+motor mt5 = motor(PORT12, true);//small robot only needs tw motors per side
 
 // Vision Sensor
 vision vis1 = vision(PORT19);
