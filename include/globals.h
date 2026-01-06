@@ -34,7 +34,10 @@ extern vision vis1;
 // Color Signatures
 extern vision::signature redSig;
 
-extern motor_group mgL;
-extern motor_group mgR;
+// drivetrain motor group
+extern motor_group dtL;
+extern motor_group dtR;
+
+extern motor_group mgI;
 
 #endif

@@ -8,4 +8,7 @@ extern void tempCheck();
 extern void axisChangedL();
 extern void axisChangedR();
 
+// intake.cpp
+extern void intake();
+
 #endif
