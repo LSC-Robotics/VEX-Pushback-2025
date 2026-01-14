@@ -9,6 +9,9 @@ extern void axisChangedL();
 extern void axisChangedR();
 
 // intake.cpp
-extern void intake();
+extern void infwd();
+extern void inrev();
+extern void infwdRel();
+extern void inrevRel();
 
 #endif

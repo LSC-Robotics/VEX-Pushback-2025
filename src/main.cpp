@@ -23,8 +23,16 @@ void autonomous() {
 void teleop() {
     ct.Axis2.changed(axisChangedR); // RIGHT JOYSTICK
     ct.Axis3.changed(axisChangedL); // LEFT JOYSTICK
+
+    ct.ButtonR1.pressed(infwd);
+    ct.ButtonR1.released(infwdRel);
+
+    ct.ButtonR2.pressed(inrev);
+    ct.ButtonR2.released(inrevRel);
+
     
 }
+
 
 int main() {
     br.Screen.print("this is the pushback");

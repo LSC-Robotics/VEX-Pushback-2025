@@ -5,22 +5,27 @@
 // Brain
 brain br;
 
+// Controller
+controller ct;
+
 // LEFT MOTORS
-motor mt1 = motor(PORT11);
-motor mt2 = motor(PORT12);
-motor mt3 = motor(PORT13); // Back Motors
+motor mt1 = motor(PORT16, true);
+motor mt2 = motor(PORT15, true);
+motor mt3 = motor(PORT11, true); // Back Motors
 
 // RIGHT MOTORS
-motor mt4 = motor(PORT14);
-motor mt5 = motor(PORT15);
-motor mt6 = motor(PORT16); // Back Motors
+motor mt4 = motor(PORT18);
+motor mt5 = motor(PORT17);
+motor mt6 = motor(PORT12); // Back Motors
 
 // INTAKE
-motor mt7 = motor(PORT19);
-motor mt8 = motor(PORT20);
+motor mt7 = motor(PORT1, true);
+motor mt8 = motor(PORT19);
+motor mt9 = motor(PORT20);
+
 
 // Vision Sensor
-vision vis1 = vision(PORT19);
+vision vis1 = vision(PORT7);
 
 // Color Signatures
 vision::signature redSig =

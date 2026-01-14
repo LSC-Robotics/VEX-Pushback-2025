@@ -40,4 +40,8 @@ extern motor_group dtR;
 
 extern motor_group mgI;
 
+extern motor mt7;
+extern motor mt8;
+extern motor mt9;
+
 #endif
