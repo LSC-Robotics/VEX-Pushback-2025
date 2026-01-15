@@ -1,47 +1,32 @@
-#include "vex.h"
-#include "vex_competition.h"
-#include "vex_drivetrain.h"
-#include "vex_global.h"
-#include "vex_motorgroup.h"
-#include "vex_task.h"
-#include "vex_units.h"
-#include "vex_vision.h"
-#include <iostream>
+#include "main.h"
 
+using namespace pros;
 
-#ifndef GLOBALS_H
-#define GLOBALS_H
+#pragma once
 
-using namespace vex;
+// Master Controller
+extern Controller ct;
 
-extern brain br;
+// LEFT MOTORS
+extern Motor mtL1;
+extern Motor mtL2;
+extern Motor mtL3;
 
-extern controller ct;
+// RIGHT MOTORS
+extern Motor mtR1;
+extern Motor mtR2;
+extern Motor mtR3;
 
-// Left Motors
-extern motor mt1;
-extern motor mt2;
-extern motor mt3;
+// INTAKE MOTORS
+extern Motor mtIN1;
+extern Motor mtIN2;
+extern Motor mtIN3;
 
-// Right Motors
-extern motor mt4;
-extern motor mt5;
-extern motor mt6;
+// MOTOR GROUPS
+extern MotorGroup mgL;
+extern MotorGroup mgR;
+extern MotorGroup mgIN;
 
-// Vision Sensors
-extern vision vis1;
-
-// Color Signatures
-extern vision::signature redSig;
-
-// drivetrain motor group
-extern motor_group dtL;
-extern motor_group dtR;
-
-extern motor_group mgI;
-
-extern motor mt7;
-extern motor mt8;
-extern motor mt9;
-
-#endif
+// FUNCTIONS
+extern void drive();
+extern void intake();

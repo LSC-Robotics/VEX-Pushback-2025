@@ -1,37 +1,71 @@
-#include "globals.h"
-#include "vex_motor.h"
-#include "vex_motorgroup.h"
+#include "main.h"
+#include <vector>
 
-// Brain
-brain br;
+using namespace pros;
+using namespace std;
 
-// Controller
-controller ct;
+// FOR PORTS: +NUM = FWD | -NUM = REV
+
+// LEFT MOTOR PORTS
+#define L1 10
+#define L2 9
+#define L3 -8
+
+// RIGHT MOTOR PORTS
+#define R1 20
+#define R2 19
+#define R3 -18
+
+// INTAKE PORTS
+#define IN1 16
+#define IN2 14
+#define IN3 -13
+
+// Set the master controller
+Controller ct(pros::E_CONTROLLER_MASTER);
 
 // LEFT MOTORS
-motor mt1 = motor(PORT16, true);
-motor mt2 = motor(PORT15, true);
-motor mt3 = motor(PORT11, true); // Back Motors
+Motor mtL1(L1);
+Motor mtL2(L2);
+Motor mtL3(L3);
 
 // RIGHT MOTORS
-motor mt4 = motor(PORT18);
-motor mt5 = motor(PORT17);
-motor mt6 = motor(PORT12); // Back Motors
+Motor mtR1(R1);
+Motor mtR2(R2);
+Motor mtR3(R3);
 
-// INTAKE
-motor mt7 = motor(PORT1, true);
-motor mt8 = motor(PORT19);
-motor mt9 = motor(PORT20);
+// INTAKE MOTORS
+Motor mtIN1(IN1);
+Motor mtIN2(IN2);
+Motor mtIN3(IN3);
 
+// MOTOR GROUPS
+// Setup vector for ports & then initialize
+std::vector<std::int8_t> portsL = {L1, L2, L3};
+MotorGroup mgL (portsL);
 
-// Vision Sensor
-vision vis1 = vision(PORT7);
+vector<std::int8_t> portsR = {R1, R2, R3};
+MotorGroup mgR (portsR);
 
-// Color Signatures
-vision::signature redSig =
-    vision::signature(1, 14769, 15277, 15023, 697, 1137, 917, 11743288, 0);
+vector<std::int8_t> portsIN = {IN1, IN2};
+MotorGroup mgIN (portsIN);
 
-// Motor Groups
-motor_group dtL = motor_group(mt1, mt2);
-motor_group dtR = motor_group(mt4, mt5);
-motor_group mgI = motor_group(mt7, mt8);
+// test for classes
+class drivetrain {
+    public:
+        MotorGroup groupLeft;
+        MotorGroup groupRight;
+
+        void move() {
+
+        }
+
+        void turn() {
+
+        }
+};
+
+class intake {
+    public:
+        Motor mt1;
+};
