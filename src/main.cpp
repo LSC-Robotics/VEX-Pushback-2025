@@ -1,4 +1,3 @@
-
 #include "main.h"
 #include <cmath>
 #include <algorithm>
@@ -18,7 +17,6 @@ static constexpr char PNEU_DESCORER_PORT = 'B';  // descorer solenoid
 // If you are using an ADI Expander plugged into Smart Port 10:
 //   pros::ADIExpander expander(10);
 //   pros::ADIDigitalOut lift(expander, 'A'); etc.
-// (I’ll show you how after the main code.)
 
 // ============================================================
 //                 Motor Ports (from your message)
@@ -48,7 +46,7 @@ static constexpr int FLICK_PORT = 9;
 static constexpr int DRIVE_MAX_MV = 12000;
 static constexpr int INTAKE_MV    = 12000;
 
-static constexpr double FLICK_DEG = 90.0;   // start here; adjust if gearing
+static constexpr double FLICK_DEG = 120.0;   // amount to jog per press
 static constexpr int    FLICK_RPM = 200;
 
 // Simple vision align parameters (tune later)
@@ -61,17 +59,13 @@ static constexpr int VISION_TOL      = 12;
 // ============================================================
 
 // Drive motors
-// Left side: two normal + the gear-inverted top motor reversed in code
-pros::Motor lTop  (L_TOP_PORT,   pros::v5::MotorGears::green, pros::v5::MotorUnits::degrees); // inverted
-pros::Motor lRear (L_REAR_PORT,  pros::v5::MotorGears::green, pros::v5::MotorUnits::degrees);
-pros::Motor lFront(L_FRONT_PORT, pros::v5::MotorGears::green, pros::v5::MotorUnits::degrees);
+pros::Motor lTop  (L_TOP_PORT,   pros::v5::MotorGears::blue, pros::v5::MotorUnits::degrees); // inverted
+pros::Motor lRear (L_REAR_PORT,  pros::v5::MotorGears::blue, pros::v5::MotorUnits::degrees);
+pros::Motor lFront(L_FRONT_PORT, pros::v5::MotorGears::blue, pros::v5::MotorUnits::degrees);
 
-// Right side: typically mirrored => reversed,
-// BUT the gear-inverted top motor ends up opposite of the other two.
-// So: set top motor NOT reversed, bottom motors reversed.
-pros::Motor rTop  (R_TOP_PORT,   pros::v5::MotorGears::green, pros::v5::MotorUnits::degrees); // gear inversion cancels mirror
-pros::Motor rRear (R_REAR_PORT,  pros::v5::MotorGears::green, pros::v5::MotorUnits::degrees);
-pros::Motor rFront(R_FRONT_PORT, pros::v5::MotorGears::green, pros::v5::MotorUnits::degrees);
+pros::Motor rTop  (R_TOP_PORT,   pros::v5::MotorGears::blue, pros::v5::MotorUnits::degrees); // gear inversion cancels mirror
+pros::Motor rRear (R_REAR_PORT,  pros::v5::MotorGears::blue, pros::v5::MotorUnits::degrees);
+pros::Motor rFront(R_FRONT_PORT, pros::v5::MotorGears::blue, pros::v5::MotorUnits::degrees);
 
 // Intake
 pros::Motor intakeL(INTAKE_L_PORT, pros::v5::MotorGears::green, pros::v5::MotorUnits::degrees);
@@ -134,12 +128,21 @@ void intakeOff() {
   intakeR.move_voltage(0);
 }
 
+// ---- Flicker helpers ----
+void flickUp() {
+ // flick.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+  flick.move_relative(FLICK_DEG, FLICK_RPM);
+}
+void flickDown() {
+ // flick.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+  flick.move_relative(-FLICK_DEG, FLICK_RPM);
+}
+
+// Kept for autonomous sequence (one up+down cycle)
 void flickOnce() {
   flick.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
-
   flick.move_relative(FLICK_DEG, FLICK_RPM);
   pros::delay(250);
-
   flick.move_relative(-FLICK_DEG, FLICK_RPM);
   pros::delay(250);
 }
@@ -195,10 +198,19 @@ void initialize() {
   descorerPneu.set_value(false);   // default descorer up
   flick.tare_position();
 
-  // Set motor reversal flags (moved from global scope)
-  lTop.set_reversed(true);
-  rRear.set_reversed(true);
-  rFront.set_reversed(true);
+  // ================================
+  // Motor reversal flags
+  // ================================
+  lTop.set_reversed(false);  // top left (gear-inverted - reverse gearing cancels it out)
+  lRear.set_reversed(true);  // ✅ bottom left (port 2) reversed as requested
+  lFront.set_reversed(true); // ✅ bottom front left (port 3) reversed as requested
+
+  // Right drive bottom motors reversed; top not
+  rTop.set_reversed(true);
+  rRear.set_reversed(false);
+  rFront.set_reversed(false);
+
+  // (Your current intake reversal as posted)
   intakeR.set_reversed(true);
 }
 
@@ -208,8 +220,7 @@ void competition_initialize() {}
 // ============================================================
 //                 AUTONOMOUS (sane “first working” version)
 // ============================================================
-// NOTE: This will RUN and do the actions; you WILL need to tune times.
-// I structured it to match what you described and it won’t crash if vision fails.
+
 void autonomous() {
   setDriveBrake(pros::E_MOTOR_BRAKE_BRAKE);
 
@@ -258,8 +269,12 @@ void autonomous() {
 }
 
 // ============================================================
-//                 DRIVER CONTROL (Tank, not arcade)
+//                 DRIVER CONTROL (Tank: explicit mapping)
 // ============================================================
+// Left joystick  -> ports 1, 2, 3 (left drive)
+// Right joystick -> ports 4, 5, 6 (right drive)
+// L1 -> flick UP, L2 -> flick DOWN
+// R1 -> INTAKE,  R2 -> OUTTAKE
 
 void opcontrol() {
   setDriveBrake(pros::E_MOTOR_BRAKE_COAST);
@@ -268,23 +283,38 @@ void opcontrol() {
   bool descorerDown = false;
 
   while (true) {
-    // Tank drive (Tyler Tonkins preference)
+    // Read sticks with deadband
     int leftY  = deadband(master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y));
     int rightY = deadband(master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y));
 
-    int left_mv  = (leftY  * DRIVE_MAX_MV) / 127;
-    int right_mv = (rightY * DRIVE_MAX_MV) / 127;
+    // Scale to millivolts
+    int left_mv  = clampMV((leftY  * DRIVE_MAX_MV) / 127);
+    int right_mv = clampMV((rightY * DRIVE_MAX_MV) / 127);
 
-    driveTankMV(left_mv, right_mv);
+    // Explicit mapping by side
+    lTop.move_voltage(left_mv);
+    lRear.move_voltage(left_mv);
+    lFront.move_voltage(left_mv);
 
-    // Intake: R1 in, R2 reverse
-    if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) intakeOn();
-    else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) intakeReverse();
-    else intakeOff();
+    rTop.move_voltage(right_mv);
+    rRear.move_voltage(right_mv);
+    rFront.move_voltage(right_mv);
 
-    // Flick: L1
+    // Intake mapping: R1 in, R2 reverse
+    if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+      intakeOn();
+    } else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
+      intakeReverse();
+    } else {
+      intakeOff();
+    }
+
+    // Flick mapping: L1 = up, L2 = down (one jog per press)
     if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L1)) {
-      flickOnce();
+      flickUp();
+    }
+    if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2)) {
+      flickDown();
     }
 
     // Lift toggle: UP
