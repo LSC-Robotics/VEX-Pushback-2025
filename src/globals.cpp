@@ -1,4 +1,5 @@
 #include "globals.h"
+#include "adi.hpp"
 #include <vector>
 
 using namespace pros;
@@ -7,20 +8,26 @@ using namespace std;
 // FOR PORTS: +NUM = FWD | -NUM = REV
 
 // LEFT MOTOR PORTS
-#define L1 -10
-#define L2 -9
-#define L3 8
+#define L1 -1 
+#define L2 2
+#define L3 3
 
 // RIGHT MOTOR PORTS
-#define R1 20
-#define R2 19
-#define R3 -18
+#define R1 -4
+#define R2 5
+#define R3 6
 
 // INTAKE PORTS
-#define IN1 16
-#define IN2 -14
-#define IN3 -13
-#define IN4 -5
+#define IN1 7
+#define IN2 -8
+
+// Launch Port
+#define IN3 9
+
+// PNEUMATICS PORTS
+#define PN0 'A'
+#define PN1 'B'
+
 
 // Set the master controller
 Controller ct(pros::E_CONTROLLER_MASTER);
@@ -38,8 +45,9 @@ Motor mtR3(R3);
 // INTAKE MOTORS
 Motor mtIN1(IN1);
 Motor mtIN2(IN2);
+
+// Launch Port
 Motor mtIN3(IN3);
-Motor mtIN4(IN4);
 
 // MOTOR GROUPS
 // Setup vector for ports & then initialize
@@ -49,25 +57,23 @@ MotorGroup mgL (portsL);
 vector<std::int8_t> portsR = {R1, R2, R3};
 MotorGroup mgR (portsR);
 
-vector<std::int8_t> portsIN = {IN1, IN2};
-MotorGroup mgIN (portsIN);
+adi::Pneumatics pn0(PN0, false);
+adi::Pneumatics pn1(PN1, false);
 
-// test for classes
-class drivetrain {
-    public:
-        MotorGroup groupLeft;
-        MotorGroup groupRight;
+// BASIC VARIABLES
+bool R1_PUSHED = ct.get_digital_new_press(E_CONTROLLER_DIGITAL_R1);
+bool R1_RELEASED = ct.get_digital_new_release(E_CONTROLLER_DIGITAL_R1);
 
-        void move() {
+bool R2_PUSHED = ct.get_digital_new_press(E_CONTROLLER_DIGITAL_R2);
+bool R2_RELEASED = ct.get_digital_new_press(E_CONTROLLER_DIGITAL_R2);
 
-        }
+bool L1_PUSHED = ct.get_digital_new_press(E_CONTROLLER_DIGITAL_L1);
+bool L1_RELEASED = ct.get_digital_new_release(E_CONTROLLER_DIGITAL_L1);
 
-        void turn() {
+bool L2_PUSHED = ct.get_digital_new_press(E_CONTROLLER_DIGITAL_L2);
+bool L2_RELEASED = ct.get_digital_new_press(E_CONTROLLER_DIGITAL_L2);
 
-        }
-};
-
-class intake {
-    public:
-        Motor mt1;
-};
+bool A_PUSHED = ct.get_digital_new_press(E_CONTROLLER_DIGITAL_A);
+bool B_PUSHED = ct.get_digital_new_press(E_CONTROLLER_DIGITAL_B);
+bool X_PUSHED = ct.get_digital_new_press(E_CONTROLLER_DIGITAL_X);
+bool Y_PUSHED = ct.get_digital_new_press(E_CONTROLLER_DIGITAL_Y);

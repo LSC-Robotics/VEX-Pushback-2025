@@ -28,6 +28,30 @@ extern MotorGroup mgL;
 extern MotorGroup mgR;
 extern MotorGroup mgIN;
 
+// PNEUMATICS
+extern adi::Pneumatics pn0;
+extern adi::Pneumatics pn1;
+extern adi::Pneumatics pn2;
+extern adi::Pneumatics pn4;
+
 // FUNCTIONS
 extern void drive();
 extern void intake();
+
+// BASIC VARIABLES
+extern bool R1_PUSHED;
+extern bool R1_RELEASED;
+
+extern bool R2_PUSHED;
+extern bool R2_RELEASED;
+
+extern bool L1_PUSHED;
+extern bool L1_RELEASED;
+
+extern bool L2_PUSHED;
+extern bool L2_RELEASED;
+
+extern bool A_PUSHED;
+extern bool B_PUSHED;
+extern bool X_PUSHED;
+extern bool Y_PUSHED;
