@@ -14,6 +14,12 @@ static constexpr int VISION_PORT = 11;   // <-- change to your actual Vision por
 static constexpr char PNEU_LIFT_PORT     = 'A';  // scissor ladder (both cylinders via T-fitting)
 static constexpr char PNEU_DESCORER_PORT = 'B';  // descorer solenoid
 
+// ADI port mappings for lift and descorer cylinders
+static constexpr char PNEU_LIFT_UP   = 'A';
+static constexpr char PNEU_LIFT_DOWN = 'B';
+static constexpr char PNEU_DESC_UP   = 'C';
+static constexpr char PNEU_DESC_DOWN = 'D';
+
 // If you are using an ADI Expander plugged into Smart Port 10:
 //   pros::ADIExpander expander(10);
 //   pros::ADIDigitalOut lift(expander, 'A'); etc.
@@ -46,8 +52,10 @@ static constexpr int FLICK_PORT = 9;
 static constexpr int DRIVE_MAX_MV = 12000;
 static constexpr int INTAKE_MV    = 12000;
 
-static constexpr double FLICK_DEG = 120.0;   // amount to jog per press
-static constexpr int    FLICK_RPM = 200;
+static constexpr double FLICK_DEG = 468.0;   // amount for one flick (1.3 rotations)
+static constexpr int    FLICK_RPM = 425;
+static constexpr int    FLICK_MV  = 10000;  // voltage for flick movement
+static constexpr int    FLICK_TIME_MS = 175; // time to move 1.3 rotations at 200 RPM
 
 // Simple vision align parameters (tune later)
 static constexpr int VISION_SIG_GOAL = 1;   // change to your signature IDs
@@ -77,9 +85,11 @@ pros::Motor flick(FLICK_PORT, pros::v5::MotorGears::blue, pros::v5::MotorUnits::
 // Vision
 pros::Vision vision(VISION_PORT);
 
-// Pneumatics (3-wire)
-pros::ADIDigitalOut liftPneu(PNEU_LIFT_PORT);
-pros::ADIDigitalOut descorerPneu(PNEU_DESCORER_PORT);
+// Pneumatics (ADI 3-pin solenoids on expander)
+pros::ADIDigitalOut liftUp(PNEU_LIFT_UP);
+pros::ADIDigitalOut liftDown(PNEU_LIFT_DOWN);
+pros::ADIDigitalOut descorerUp(PNEU_DESC_UP);
+pros::ADIDigitalOut descorerDown(PNEU_DESC_DOWN);
 
 // Controller
 pros::Controller master(pros::E_CONTROLLER_MASTER);
@@ -130,20 +140,20 @@ void intakeOff() {
 
 // ---- Flicker helpers ----
 void flickUp() {
- // flick.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
-  flick.move_relative(FLICK_DEG, FLICK_RPM);
+  flick.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+  flick.move_absolute(FLICK_DEG, FLICK_RPM);
 }
 void flickDown() {
- // flick.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
-  flick.move_relative(-FLICK_DEG, FLICK_RPM);
+  flick.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+  flick.move_absolute(0, FLICK_RPM);
 }
 
 // Kept for autonomous sequence (one up+down cycle)
 void flickOnce() {
   flick.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
-  flick.move_relative(FLICK_DEG, FLICK_RPM);
+  flick.move_absolute(FLICK_DEG, FLICK_RPM);
   pros::delay(250);
-  flick.move_relative(-FLICK_DEG, FLICK_RPM);
+  flick.move_absolute(0, FLICK_RPM);
   pros::delay(250);
 }
 
@@ -194,8 +204,10 @@ void initialize() {
 
   setDriveBrake(pros::E_MOTOR_BRAKE_BRAKE);
 
-  liftPneu.set_value(false);       // default lift down
-  descorerPneu.set_value(false);   // default descorer up
+  liftUp.set_value(false);      // default lift down
+  liftDown.set_value(false);
+  descorerUp.set_value(false);  // default descorer down
+  descorerDown.set_value(false);
   flick.tare_position();
 
   // ================================
@@ -224,47 +236,75 @@ void competition_initialize() {}
 void autonomous() {
   setDriveBrake(pros::E_MOTOR_BRAKE_BRAKE);
 
-  // 1) Intake and collect initial 3 balls
+  // 1) Drive forward 3 feet while intaking
   intakeOn();
-  driveTimed(9000, 9000, 700); // forward ~short distance
+  driveTimed(9000, 9000, 1200); // ~3 feet forward
 
-  // 2) Go to first goal and align (vision helps if signature exists)
-  (void)visionAlignGoal(900);
-  driveTimed(8000, 8000, 600);
+  // 2) Turn right 90 degrees
+  driveTankMV(5000, -5000);
+  pros::delay(600); // adjust timing for 90° turn
+  stopDrive();
 
-  // 3) Head toward loader and take ~6 balls
-  driveTimed(-8000, -8000, 400);
-  driveTimed(7000, -7000, 300);   // turn (tune direction)
-  driveTimed(9000, 9000, 900);    // drive to loader
-  driveTimed(6000, 6000, 400);    // press into loader and feed
+  // 3) Drive 3 feet over more balls with intake on
+  driveTimed(9000, 9000, 1200); // ~3 feet forward
+
+  // 4) Turn around 135 degrees (right)
+  driveTankMV(5000, -5000);
+  pros::delay(800); // adjust timing for 135° turn
+  stopDrive();
+
+  // 5) Drive 4 feet
+  driveTimed(9000, 9000, 1600); // ~4 feet forward
+
+  // 6) Flick into medium goal
+  intakeOff();
+  flickOnce();
   pros::delay(300);
 
-  // 4) Back into tall goal area, lift up, flick balls
-  liftPneu.set_value(true);       // raise scissor ladder (both cylinders together)
+  // 7) Turn around 180 degrees
+  driveTankMV(5000, -5000);
+  pros::delay(1100); // adjust timing for 180° turn
+  stopDrive();
+
+  // 8) Drive 6 feet
+  driveTimed(9000, 9000, 2400); // ~6 feet forward
+
+  // 9) Turn right 45 degrees
+  driveTankMV(5000, -5000);
+  pros::delay(300); // adjust timing for 45° turn
+  stopDrive();
+
+  // 10) Engage lift and drive slowly into loader
+  liftUp.set_value(true);
+  liftDown.set_value(false);
+  pros::delay(300); // wait for lift to engage
+
+  intakeOn();
+  driveTimed(6000, 6000, 800); // slow drive into loader
+
+  // 11) Intake 6 balls from loader
+  intakeOn();
+  pros::delay(2000); // intake time for 6 balls
+
+  // 12) Reverse 3 feet
+  driveTimed(-9000, -9000, 1200); // ~3 feet backward
+
+  // 13) Flick into high goal while engaging descorer
+  descorerUp.set_value(true);
+  descorerDown.set_value(false);
   pros::delay(200);
 
-  driveTimed(-9000, -9000, 900);  // back out from loader
-  driveTimed(-7000, 7000, 300);   // turn toward tall goal (tune)
-  driveTimed(-9000, -9000, 600);  // back into tall goal
-
-  intakeOff();
   for (int i = 0; i < 6; i++) {
     flickOnce();
     pros::delay(120);
   }
 
-  // 5) Drop descorer and push into long goal
-  descorerPneu.set_value(true);
-  pros::delay(150);
-
-  intakeOn();
-  driveTimed(9000, 9000, 800);
-  driveTimed(7000, 7000, 400);
-
   // Cleanup
   intakeOff();
-  descorerPneu.set_value(false);
-  liftPneu.set_value(false);
+  descorerUp.set_value(false);
+  descorerDown.set_value(false);
+  liftUp.set_value(false);
+  liftDown.set_value(false);
   stopDrive();
 }
 
@@ -273,14 +313,16 @@ void autonomous() {
 // ============================================================
 // Left joystick  -> ports 1, 2, 3 (left drive)
 // Right joystick -> ports 4, 5, 6 (right drive)
-// L1 -> flick UP, L2 -> flick DOWN
+// L1 -> flicker up, L2 -> flicker down
+// Y -> lift toggle (up/down)
 // R1 -> INTAKE,  R2 -> OUTTAKE
+// A -> descorer toggle
 
 void opcontrol() {
   setDriveBrake(pros::E_MOTOR_BRAKE_COAST);
 
-  bool liftUp = false;
-  bool descorerDown = false;
+  bool liftState = false;     // false = down, true = up
+  bool descorerState = false;
 
   while (true) {
     // Read sticks with deadband
@@ -309,25 +351,44 @@ void opcontrol() {
       intakeOff();
     }
 
-    // Flick mapping: L1 = up, L2 = down (one jog per press)
+    // Flicker: L1 up, L2 down (press to move fixed amount with voltage)
     if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L1)) {
-      flickUp();
+      flick.move_voltage(FLICK_MV);
+      pros::delay(FLICK_TIME_MS);
+      flick.move_voltage(0);
     }
     if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2)) {
-      flickDown();
+      flick.move_voltage(-FLICK_MV);
+      pros::delay(FLICK_TIME_MS);
+      flick.move_voltage(0);
     }
 
-    // Lift toggle: UP
-    if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)) {
-      liftUp = !liftUp;
-      liftPneu.set_value(liftUp);
+    // Lift toggle: Y (press once to up, again to down)
+    if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y)) {
+      if (liftState) {
+        // Lift is up, bring it down
+        liftUp.set_value(false);
+        liftDown.set_value(true);
+        liftState = false;
+      } else {
+        // Lift is down, bring it up
+        liftUp.set_value(true);
+        liftDown.set_value(false);
+        liftState = true;
+      }
     }
 
     // Descorer toggle: A
-    if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
-      descorerDown = !descorerDown;
-      descorerPneu.set_value(descorerDown);
-    }
+        if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
+          descorerState = !descorerState;
+          if (descorerState) {
+            descorerDown.set_value(true);
+            descorerUp.set_value(false);
+          } else {
+            descorerDown.set_value(false);
+            descorerUp.set_value(false);
+          }
+        }
 
     // Optional: X toggles brake hold (scrum mode)
     if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X)) {
